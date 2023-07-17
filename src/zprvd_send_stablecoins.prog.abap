@@ -33,7 +33,8 @@ lcl_prvd_api_helper->get_nchain_helper( IMPORTING eo_prvd_nchain_helper = lcl_pr
 
 lcl_prvd_nchain_erc20 = NEW zcl_prvd_nchain_erc20( iv_network_id         = p_ntwrk
                                                    iv_smartcontract_addr = p_erc20
-                                                   iv_nchain_helper      = lcl_prvd_nchain_helper ).
+                                                   iv_nchain_helper      = lcl_prvd_nchain_helper
+                                                   iv_vault_helper       = lcl_prvd_vault_helper ).
 
 
 "Retrieve the account we're using for the selected network
@@ -43,7 +44,8 @@ IF sy-subrc <> 0.
   MESSAGE 'No account found for selected network' TYPE 'E'.
 ENDIF.
 
-lcl_prvd_nchain_erc20~zif_prvd_nchain_erc20->transfer( ). 
+ls_txn_ref = lcl_prvd_nchain_erc20~zif_prvd_nchain_erc20->transfer( iv_recipient = p_recp
+                                                                    iv_account   = ls_account ).
 
 "Monitor the transaction. Polygon L2 and Celo layer 1 are fast. Expect mainnet Ethereum and others to be slower!
 ls_txn_details = lcl_prvd_nchain_helper->get_tx_details( iv_ref_number = ls_txn_ref-ref ).
@@ -51,11 +53,11 @@ lv_txn_id = ls_txn_details-hash.
 
 CASE p_ntwrk.
   WHEN c_celo_alfajores.
-    lv_blockexplorer_link = |https://alfajores.celoscan.io/tx/| && lv_txn_id.
+    lv_blockexplorer_link = |https://alfajores.celoscan.io/tx/| & lv_txn_id.
   WHEN c_polygon_mumbai.
-    lv_blockexplorer_link = |https://mumbai.polygonscan.com/tx/| && lv_txn_id.
+    lv_blockexplorer_link = |https://mumbai.polygonscan.com/tx/| & lv_txn_id.
   WHEN OTHERS.
-    lv_blockexplorer_link = |Use this transaction hash in your block explorer:| && lv_txn_id.
+    lv_blockexplorer_link = |Use this transaction hash in your block explorer:| & lv_txn_id.
 ENDCASE.
 
 WRITE 'See block explorer'.

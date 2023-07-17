@@ -4,12 +4,14 @@ CLASS zcl_prvd_nchain_erc20 DEFINITION PUBLIC.
   "! Network id and contract address needed
     METHODS: constructor IMPORTING iv_network_id TYPE zprvd_nchain_networkid
                                  iv_smartcontract_addr TYPE zprvd_smartcontract_addr
-                                 iv_nchain_helper TYPE zcl_prvd_nchain_helper.
+                                 io_nchain_helper TYPE REF TO zcl_prvd_nchain_helper
+                                 io_vault_helper TYPE REF TO zcl_prvd_vault_helper.
   PROTECTED SECTION.
     DATA: mcl_nchain_helper TYPE REF TO zcl_prvd_nchain_helper,
           mcl_vault_helper  TYPE REF TO zcl_prvd_vault_helper,
           mv_contract_id TYPE zcasesensitive_str,
-          mv_contract_name TYPE zcasesensitive_str.
+          mv_contract_name TYPE zcasesensitive_str,
+          mv_decimals TYPE i.
           
     METHODS get_contract_instance IMPORTING iv_network_id TYPE zprvd_nchain_networkid
                                             iv_smartcontract_addr TYPE zprvd_smartcontract_addr.
@@ -17,24 +19,40 @@ CLASS zcl_prvd_nchain_erc20 DEFINITION PUBLIC.
                                              iv_smartcontract_addr TYPE zprvd_smartcontract_addr.
     METHODS convert_decimals_to_uint IMPORTING iv_amount TYPE int8
                                                iv_decimals TYPE i
-                                     RETURNING VALUE(rv_uint) TYPE decfloat34.
+                                     RETURNING VALUE(rv_uint) TYPE f.
 ENDCLASS.
 
 CLASS zcl_prvd_nchain_erc20 IMPLEMENTATION.
 
   METHOD constructor.
+    IF io_nchain_helper IS NOT INITIAL.
+      mcl_nchain_helper = io_nchain_helper.
+    ENDIF.
+    IF io_vault_helper IS NOT INITIAL.
+      mcl_vault_helper = io_vault_helper.
+    ENDIF.
     get_contract_instance( iv_network_id         = iv_network_id
                            iv_smartcontract_addr = iv_smartcontract_addr ).
   ENDMETHOD.
 
   METHOD zif_prvd_nchain_erc20~transfer.
     DATA: ls_exec_contract_req   TYPE zif_prvd_nchain=>ty_executecontractreq_account,
-          lt_params TABLE OF ANY.
+          lt_params TABLE OF ANY,
+          ls_param TYPE REF TO DATA,
+          lv_amount_transferred TYPE f,
+          lv_inputs TYPE string.
+
+    lv_amount_transferred  = convert_decimals_to_uint( iv_amount, 18 ).
+
+    lv_inputs = `["` && iv_recipient && `",` && lv_amount_transferred && `]`.
+
+    /ui2/cl_json=>deserialize( EXPORTING json = lv_inputs
+                               CHANGING data = ls_param ).
 
     "Execute the transfer function of the smart contract to send payment
     ls_exec_contract_req-account_id = ls_account-id.
     ls_exec_contract_req-method = 'transfer'.
-    ls_exec_contract_req-params = tab.
+    ls_exec_contract_req-params = lv_inputs.
     ls_exec_contract_req-value = 0.
 
     rs_txn_ref = mcl_nchain_helper->execute_contract_by_account(
@@ -75,6 +93,9 @@ CLASS zcl_prvd_nchain_erc20 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD convert_decimals_to_uint.
+    DATA lv_gwei TYPE f.
+    lv_gwei = 10 ** iv_decimals.
+    rv_uint = iv_amount * lv_gwei.
   ENDMETHOD.
 
 ENDCLASS.
