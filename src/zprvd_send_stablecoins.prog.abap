@@ -1,7 +1,7 @@
 REPORT zprvd_send_stablecoins.
 
-CONSTANTS: c_polygon_mumbai TYPE zcasesensitive_str value '',
-           c_celo_alfajores TYPE zcasesensitive_str value ''.
+CONSTANTS: c_polygon_mumbai TYPE zcasesensitive_str value '4251b6fd-c98d-4017-87a3-d691a77a52a7',
+           c_celo_alfajores TYPE zcasesensitive_str value 'd818afb9-df2f-4e46-963a-f7b6cb7655d2'.
 
 DATA: lcl_prvd_api_helper    TYPE REF TO zcl_prvd_api_helper,
   lcl_prvd_vault_helper  TYPE REF TO zcl_prvd_vault_helper,
